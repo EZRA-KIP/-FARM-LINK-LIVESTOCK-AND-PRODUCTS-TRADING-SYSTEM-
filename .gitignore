@@ -42,3 +42,8 @@ Thumbs.db
 
 # Optional: ignore large design files
 *.zip
+
+# Ignore all JS scripts in dev-tools except the main MongoDB script
+dev-tools/*.js
+!dev-tools/playground-1.mongodb.js
+
