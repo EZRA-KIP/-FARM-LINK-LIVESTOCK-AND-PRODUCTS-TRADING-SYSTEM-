@@ -61,7 +61,7 @@ class Product(models.Model):
     stock = models.PositiveIntegerField()
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     image = models.ImageField(upload_to='products/', null=True, blank=True)
-    tag_number = models.CharField(max_length=50, null=True, blank=True, unique=True)
+    tag_number = models.CharField(max_length=100, null=True, blank=True)  # <-- REMOVE unique=True
     is_vaccinated = models.BooleanField(default=False)
     last_vaccination_date = models.DateField(null=True, blank=True)
     health_certificate_url = models.URLField(null=True, blank=True)

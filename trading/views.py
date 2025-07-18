@@ -11,7 +11,7 @@ from decimal import Decimal
 import io
  
 from .models import Product, Category, Order, UserProfile, Cart, OrderItem, Review, Payment
-from .serializers import ProductSerializer, CategorySerializer, OrderSerializer, ReviewSerializer, PaymentSerializer
+from .serializers import ProductSerializer, CategorySerializer, OrderSerializer, ReviewSerializer, PaymentSerializer, CartDetailSerializer
 
 import requests
 import base64
@@ -83,8 +83,14 @@ def create_order(request):
 # ==================== GUEST CART ====================
 class CartView(APIView):
     def get(self, request):
-        cart = request.session.get('cart', [])
-        return Response({'items': cart})
+        cart_items = request.session.get('cart', [])
+        # Create a dummy Cart-like object for serialization
+        class DummyCart:
+            def __init__(self, items):
+                self.items = items
+        cart_obj = DummyCart(cart_items)
+        serializer = CartDetailSerializer(cart_obj)
+        return Response(serializer.data)
 
     def post(self, request):
         cart = request.data.get('items', [])
@@ -97,7 +103,8 @@ class PersistentCartView(APIView):
 
     def get(self, request):
         cart, _ = Cart.objects.get_or_create(user=request.user)
-        return Response({'items': cart.items})
+        serializer = CartDetailSerializer(cart)
+        return Response(serializer.data)
 
     def post(self, request):
         cart, _ = Cart.objects.get_or_create(user=request.user)
@@ -314,3 +321,174 @@ def mpesa_callback(request):
         return Response({"message": "Payment status updated"}, status=200)
     except Payment.DoesNotExist:
         return Response({"error": "Payment not found"}, status=404)
+
+from django.http import HttpResponse
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from .models import Order
+
+def download_receipt(request, order_id):
+    order = Order.objects.get(id=order_id, user=request.user)
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="receipt_{order.id}.pdf"'
+    p = canvas.Canvas(response, pagesize=letter)
+    y = 750
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(50, y, "FarmLink Receipt")
+    y -= 30
+    p.setFont("Helvetica", 12)
+    p.drawString(50, y, f"Order ID: {order.id}")
+    y -= 20
+    p.drawString(50, y, f"Name: {order.customer_name}")
+    y -= 20
+    p.drawString(50, y, f"Email: {order.customer_email}")
+    y -= 20
+    p.drawString(50, y, f"Phone: {order.phone_number}")
+    y -= 20
+    p.drawString(50, y, f"Address: {order.shipping_address}")
+    y -= 20
+
+    # --- Add Order Date ---
+    order_date = order.created_at.strftime("%Y-%m-%d %H:%M") if hasattr(order, "created_at") else ""
+    p.drawString(50, y, f"Order Date: {order_date}")
+    y -= 20
+
+    # --- Add Payment Method ---
+    # If you have a related Payment object, get the latest one for this order
+    payment_method = ""
+    if hasattr(order, "payment_set"):
+        payment = order.payment_set.order_by('-created_at').first()
+        if payment:
+            payment_method = payment.payment_method
+    elif hasattr(order, "payment_method"):
+        payment_method = order.payment_method
+
+    p.drawString(50, y, f"Payment Method: {payment_method}")
+    y -= 30
+
+    # --- Itemized List Header ---
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, y, "Product")
+    p.drawString(250, y, "Qty")
+    p.drawString(320, y, "Unit Price")
+    p.drawString(420, y, "Subtotal")
+    y -= 18
+    p.setFont("Helvetica", 12)
+
+    total_paid = 0
+    for item in order.items.all():
+        price = float(Decimal(str(item.product.price)))
+        subtotal = price * item.quantity
+        total_paid += subtotal
+        p.drawString(50, y, str(item.product.name))
+        p.drawString(250, y, str(item.quantity))
+        p.drawString(320, y, f"Ksh {price:.2f}")
+        p.drawString(420, y, f"Ksh {subtotal:.2f}")
+        y -= 18
+        if y < 80:
+            p.showPage()
+            y = 750
+
+    y -= 10
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, y, f"Total Paid: Ksh {total_paid:.2f}")
+    y -= 30
+    p.setFont("Helvetica", 12)
+    p.drawString(50, y, "Thank you for shopping with FarmLink!")
+    p.showPage()
+    p.save()
+    return response
+
+# ==================== SALES TRENDS ====================
+from collections import defaultdict
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import OrderItem
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def sales_trends(request):
+    items = OrderItem.objects.select_related('order', 'product').all()
+    monthly_data = defaultdict(lambda: {"total_sales": 0, "prices": [], "count": 0})
+
+    for item in items:
+        month = item.order.created_at.strftime('%Y-%m')
+        # Convert Decimal128 to Decimal, then to float
+        price = float(Decimal(str(item.product.price)))
+        monthly_data[month]["total_sales"] += price * item.quantity
+        monthly_data[month]["prices"].append(price)
+        monthly_data[month]["count"] += 1
+
+    result = []
+    for month, values in sorted(monthly_data.items()):
+        avg_price = (
+            sum(values["prices"]) / values["count"]
+            if values["count"] > 0 else 0
+        )
+        result.append({
+            "month": month,
+            "total_sales": values["total_sales"],
+            "avg_price": avg_price
+        })
+
+    return Response(result)
+
+# ==================== ANALYTICS DASHBOARD ====================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def analytics_dashboard(request):
+    items = OrderItem.objects.select_related('order', 'product').all()
+    monthly_data = defaultdict(lambda: {"total_sales": 0, "prices": [], "count": 0})
+
+    for item in items:
+        month = item.order.created_at.strftime('%Y-%m')
+        price = float(Decimal(str(item.product.price)))
+        monthly_data[month]["total_sales"] += price * item.quantity
+        monthly_data[month]["prices"].append(price)
+        monthly_data[month]["count"] += 1
+
+    result = []
+    for month, values in sorted(monthly_data.items()):
+        avg_price = (
+            sum(values["prices"]) / values["count"]
+            if values["count"] > 0 else 0
+        )
+        result.append({
+            "month": month,
+            "total_sales": values["total_sales"],
+            "avg_price": avg_price
+        })
+
+    return Response(result)
+
+from rest_framework import status
+from .models import Product
+from .serializers import ProductSerializer
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def post_product(request):
+    serializer = ProductSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save(seller=request.user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def seller_products(request):
+    products = Product.objects.filter(seller=request.user)
+    serializer = ProductSerializer(products, many=True)
+    return Response(serializer.data)
+
+# ==================== VET DASHBOARD ====================
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def vet_dashboard(request):
+    # Example: return all vet requests
+    from .models import VetRequest
+    from .serializers import VetRequestSerializer
+    requests = VetRequest.objects.all()
+    serializer = VetRequestSerializer(requests, many=True)
+    return Response(serializer.data)

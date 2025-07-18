@@ -18,10 +18,13 @@ from .views import (
     add_review,
     admin_orders,  # Import the admin_orders view
     mpesa_callback,  # Import the M-Pesa callback view
+    download_receipt,  # Import the download_receipt view
+    sales_trends,
 )
 from django.conf import settings
 from django.conf.urls.static import static
 from django.views.generic import TemplateView
+from . import views
 
 router = DefaultRouter()
 router.register(r'products', ProductViewSet)
@@ -71,6 +74,18 @@ urlpatterns = [
 
     # ✅ M-Pesa callback
     path('api/mpesa/callback/', mpesa_callback, name='mpesa-callback'),
+
+    # ✅ Download receipt
+    path('orders/<int:order_id>/receipt/', download_receipt, name='download_receipt'),
+
+    # ✅ Sales trends analytics
+    path('api/analytics/sales-trends/', sales_trends, name='sales-trends'),
+
+    # New analytics and seller/vet routes
+    path('api/analytics/dashboard/', views.analytics_dashboard, name='analytics-dashboard'),
+    path('api/seller/products/', views.seller_products, name='seller-products'),
+    path('api/seller/post/', views.post_product, name='post-product'),
+    path('api/vet/dashboard/', views.vet_dashboard, name='vet-dashboard'),
 ]
 
 # ✅ Serve uploaded media during development
