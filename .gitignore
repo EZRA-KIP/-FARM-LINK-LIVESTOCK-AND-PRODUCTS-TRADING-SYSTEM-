@@ -15,12 +15,27 @@ __pycache__/
 db.sqlite3
 env*/
 venv*/
+.mypy_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+*.pot
+*.mo
+*.pyc
+*.pyo
+*.pyd
 
 # React/Node
 node_modules/
 dist/
 build/
 dist-ssr/
+coverage/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Editor settings
 .vscode/
@@ -46,4 +61,20 @@ Thumbs.db
 # Ignore all JS scripts in dev-tools except the main MongoDB script
 dev-tools/*.js
 !dev-tools/playground-1.mongodb.js
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Mac system files
+.AppleDouble
+.LSOverride
+
+# Windows system files
+ehthumbs.db
+Desktop.ini
+
+# VS Code settings history
+.history/
+
+
 
