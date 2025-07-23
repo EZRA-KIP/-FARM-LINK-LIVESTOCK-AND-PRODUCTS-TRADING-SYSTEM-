@@ -6,9 +6,9 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-if_eh)s#5ogk)-mgk*3j@zoj0s214sz#2_+kkyqdmf$l$%txd3'
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 DEBUG = False
-ALLOWED_HOSTS = ['your-app-name.onrender.com']
+ALLOWED_HOSTS = ['Farmlink.onrender.com']
 
 # Application definition
 INSTALLED_APPS = [
