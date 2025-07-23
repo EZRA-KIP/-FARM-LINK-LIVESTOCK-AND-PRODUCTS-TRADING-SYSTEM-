@@ -128,7 +128,17 @@ export default function Auth({ onAuth }) {
   return (
     <Box minHeight="100vh" display="flex" flexDirection="column" bgcolor="#f7fafc">
       <Box flex={1} display="flex" alignItems="center" justifyContent="center">
-        <Paper elevation={3} sx={{ p: 4, borderRadius: 4, minWidth: 340 }}>
+        <Paper
+          elevation={3}
+          sx={{
+            p: 4,
+            borderRadius: 4,
+            minWidth: { xs: "90vw", sm: 320 }, // 90vw on mobile, 320px on small screens and up
+            maxWidth: 360,                     // Prevents it from being too wide on desktop
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+        >
           {isLogin ? (
             <>
               <Typography variant="h5" fontWeight={700} mb={2} align="center">Account</Typography>

@@ -53,7 +53,7 @@ export default function Navbar() {
 
   const navLinks = [
     { label: "Home", to: "/" },
-    { label: "Categories", to: "/categories" },
+    // { label: "Categories", to: "/categories" }, // <-- Remove or comment out this line
     { label: "About", to: "/about" },
     { label: "Contact", to: "/contact" },
   ];
@@ -173,14 +173,6 @@ export default function Navbar() {
               sx={{ fontWeight: 600 }}
             >
               Home
-            </Button>
-            <Button
-              component={NavLink}
-              to="/categories"
-              color="inherit"
-              sx={{ fontWeight: 600 }}
-            >
-              Categories
             </Button>
             <Button
               component={NavLink}
