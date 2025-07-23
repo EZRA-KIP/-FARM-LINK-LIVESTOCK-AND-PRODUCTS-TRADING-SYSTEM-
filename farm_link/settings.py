@@ -7,8 +7,8 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-if_eh)s#5ogk)-mgk*3j@zoj0s214sz#2_+kkyqdmf$l$%txd3'
-DEBUG = True
-ALLOWED_HOSTS = []
+DEBUG = False
+ALLOWED_HOSTS = ['your-app-name.onrender.com']
 
 # Application definition
 INSTALLED_APPS = [
@@ -23,11 +23,13 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'djoser',
+    'whitenoise.runserver_nostatic',
 ]
 
 AUTH_USER_MODEL = 'trading.CustomUser'
 
 MIDDLEWARE = [
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -82,6 +84,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -141,3 +144,8 @@ LOGGING = {
         'level': 'INFO',
     },
 }
+
+# Gunicorn configuration
+bind = "0.0.0.0:8000"
+workers = 3
+worker_class = "django.contrib.staticfiles.handlers.StaticFilesHandler"
