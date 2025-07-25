@@ -172,7 +172,11 @@ export default function ProductDetail() {
           <Grid gridColumn={{ xs: "span 12", md: "span 6" }}>
             {product.image && (
               <img
-                src={product.image}
+                src={
+                  product.image?.startsWith('http')
+                    ? product.image
+                    : `http://127.0.0.1:8000/media/${product.image}`
+                }
                 alt={product.name}
                 style={{
                   width: "100%",
@@ -300,8 +304,16 @@ export default function ProductDetail() {
                 {item.image && (
                   <CardMedia
                     component="img"
-                    image={item.image}
+                    height="200"
+                    image={
+                      item.image?.startsWith('http')
+                        ? item.image
+                        : `http://127.0.0.1:8000/media/${item.image}`
+                    }
                     alt={item.name}
+                    onError={(e) => {
+                      e.target.src = '/placeholder.jpg';
+                    }}
                     sx={{
                       height: 140,
                       objectFit: "cover",

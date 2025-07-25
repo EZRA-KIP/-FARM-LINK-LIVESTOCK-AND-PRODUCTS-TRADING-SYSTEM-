@@ -184,10 +184,16 @@ const ProductList = () => {
                     <CardMedia
                       component="img"
                       height="200"
-                      image={product.image || '/placeholder.jpg'}
+                      image={
+                        product.image
+                          ? (product.image.startsWith('http')
+                              ? product.image
+                              : `http://127.0.0.1:8000/media/${product.image}`)
+                          : '/placeholder.jpg'
+                      }
                       alt={product.name}
                       onError={(e) => {
-                        e.target.src = '/placeholder.jpg'; // Local fallback
+                        e.target.src = '/placeholder.jpg';
                       }}
                     />
                   </Link>
